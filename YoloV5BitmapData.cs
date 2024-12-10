@@ -1,6 +1,5 @@
 ﻿using Microsoft.ML.Data;
 using Microsoft.ML.Transforms.Image;
-using System.Drawing;
 
 namespace OnnxYoloV5
 {
@@ -8,7 +7,7 @@ namespace OnnxYoloV5
     {
         [ColumnName("images")]
         [ImageType(640, 640)]
-        public Bitmap Image { get; set; }
+        public MLImage Image { get; set; }
 
         [ColumnName("width")]
         public float ImageWidth => Image.Width;

@@ -1,8 +1,12 @@
 ﻿using Microsoft.ML;
+using Microsoft.ML.Data;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 using static Microsoft.ML.Transforms.Image.ImageResizingEstimator;
 
 namespace OnnxYoloV5
@@ -19,6 +23,30 @@ namespace OnnxYoloV5
         { 
             "0", "1", "2", "3", "4", "6", "7", "8", "A", "B", "E", "G", "H", "Y" 
         };
+
+        public static Bitmap ConvertBGRToBitmap(byte[] bgrPixels, int width, int height)
+        {
+            // Ensure the byte array has the correct length (width * height * 3 for BGR format)
+            if (bgrPixels.Length != width * height * 3)
+                throw new ArgumentException("Byte array size does not match the image dimensions.");
+
+            // Create a new Bitmap object with the specified width and height
+            Bitmap bitmap = new Bitmap(width, height, PixelFormat.Format24bppRgb);
+
+            // Lock the bitmap's bits for efficient access
+            BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, bitmap.PixelFormat);
+
+            // Get the pointer to the bitmap's pixel data
+            IntPtr ptr = bitmapData.Scan0;
+
+            // Copy the BGR byte array to the bitmap's pixel data
+            Marshal.Copy(bgrPixels, 0, ptr, bgrPixels.Length);
+
+            // Unlock the bits after copying the data
+            bitmap.UnlockBits(bitmapData);
+
+            return bitmap;
+        }
 
         static void Main(string[] args)
         {
@@ -45,12 +73,15 @@ namespace OnnxYoloV5
                                 { "images", new[] { 1, 3, 640, 640 } },
                                 { "output0", new[] { 1, 25200, 19 } }
                             },
-                            gpuDeviceId: null, // 根据需要设置，或使用 null 表示默认值
-                            fallbackToCpu: true // 根据需要设置
+                            gpuDeviceId: null, 
+                            fallbackToCpu: true
                         ));
 
+
+            List<YoloV5BitmapData> emptyData = new List<YoloV5BitmapData>();
+            IDataView emptyDataView = mlContext.Data.LoadFromEnumerable(emptyData);
             // Fit on empty list to obtain input data schema
-            var model = pipeline.Fit(mlContext.Data.LoadFromEnumerable(new List<YoloV5BitmapData>()));
+            var model = pipeline.Fit(emptyDataView);
 
             // Create prediction engine
             var predictionEngine = mlContext.Model.CreatePredictionEngine<YoloV5BitmapData, YoloV5Prediction>(model);
@@ -60,11 +91,16 @@ namespace OnnxYoloV5
 
             foreach (string imageName in Directory.GetFiles(imageFolder))
             {
-                using (var bitmap = new Bitmap(imageName))
+
+                using (var img = MLImage.CreateFromFile(imageName))
                 {
                     // predict
-                    var predict = predictionEngine.Predict(new YoloV5BitmapData() { Image = bitmap });
+                    var predict = predictionEngine.Predict(new YoloV5BitmapData() { Image = img });
                     var results = predict.GetResults(classesNames, 0.3f, 0.7f);
+
+                    byte[] getBGRPixels = img.GetBGRPixels;
+
+                    var bitmap = ConvertBGRToBitmap(img.GetBGRPixels, img.Width, img.Height);
 
                     using (var g = Graphics.FromImage(bitmap))
                     {
@@ -84,9 +120,9 @@ namespace OnnxYoloV5
                             g.DrawString(res.Label + " " + res.Confidence.ToString("0.00"),
                                          new Font("Arial", 12), Brushes.Blue, new PointF(x1, y1));
                         }
-                        var ss =Path.Combine(imageOutputFolder, Path.GetFileNameWithoutExtension(imageName)+"_Processed"+Path.GetExtension(imageName));
+                        var ss = Path.Combine(imageOutputFolder, Path.GetFileNameWithoutExtension(imageName) + "_Processed" + Path.GetExtension(imageName));
                         bitmap.Save(ss);
-                        Console.WriteLine(Path.GetFileNameWithoutExtension(imageName) +" Processed ");
+                        Console.WriteLine(Path.GetFileNameWithoutExtension(imageName) + " Processed ");
                     }
                 }
             }
