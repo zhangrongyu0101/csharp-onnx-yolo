@@ -1,5 +1,6 @@
 ﻿using Microsoft.ML.Data;
 using Microsoft.ML.Transforms.Image;
+using System.Drawing;
 
 namespace OnnxYoloV5
 {

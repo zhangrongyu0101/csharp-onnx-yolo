@@ -26,17 +26,14 @@ namespace OnnxYoloV5
 
         public static Bitmap ConvertBGRToBitmap(byte[] bgrPixels, int width, int height)
         {
-            // Ensure the byte array has the correct length (width * height * 3 for BGR format)
+
             if (bgrPixels.Length != width * height * 3)
                 throw new ArgumentException("Byte array size does not match the image dimensions.");
 
-            // Create a new Bitmap object with the specified width and height
             Bitmap bitmap = new Bitmap(width, height, PixelFormat.Format24bppRgb);
 
-            // Lock the bitmap's bits for efficient access
             BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, bitmap.PixelFormat);
 
-            // Get the pointer to the bitmap's pixel data
             IntPtr ptr = bitmapData.Scan0;
 
             // Copy the BGR byte array to the bitmap's pixel data

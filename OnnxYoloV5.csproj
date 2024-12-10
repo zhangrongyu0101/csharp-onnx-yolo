@@ -29,9 +29,13 @@
     </EmbeddedResource>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.ML" Version="*" />
-    <PackageReference Include="Microsoft.ML.ImageAnalytics" Version="*" />
-  </ItemGroup>
+  <PropertyGroup>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NoWarn>CA1416</NoWarn>
+  </PropertyGroup>
+
 
 </Project>

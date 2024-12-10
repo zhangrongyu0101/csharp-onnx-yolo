@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace OnnxYoloV5
 {
-     class YoloV5Prediction
+    class YoloV5Prediction
     {/// <summary>
      /// Identity
      /// </summary>
